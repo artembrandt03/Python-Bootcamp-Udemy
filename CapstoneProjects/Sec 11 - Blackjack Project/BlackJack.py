@@ -42,6 +42,7 @@ def clear():
 # 2) initial_deal() - Deals 2 cards to the player and dealer
 def initial_deal():
     global player_hand, dealer_hand
+    print("Let's begin the round!\nBoth player and dealer draw 2 cards.")
     player_hand = [deck.pop(), deck.pop()]
     dealer_hand = [deck.pop(), deck.pop()]
 
@@ -53,8 +54,11 @@ def print_hand(person):
             print(f"{card[0]} of {card[1]}")
     elif person == "dealer":
         print(Back.WHITE + Fore.BLACK + "Dealer's hand:" + Style.RESET_ALL)
-        print(f"{dealer_hand[0][0]} of {dealer_hand[0][1]}")
-        print("[Hidden Card]")
+        for i, card in enumerate(dealer_hand):
+            if i == 0:
+                print(f"{card[0]} of {card[1]}")
+            else:
+                print("[Hidden Card]")
 
 # 4) calculate_score(hand) - Calculates the score of a given hand
 def calculate_score(hand):
@@ -94,16 +98,16 @@ def isInitialBlackjack():
         print("Both you and the dealer hit 21 right away!")
         return "tie"
     elif player_score == 21:
-        print("You got Blackjack! You win!")
+        print("You got Blackjack from the get-go!\nYou win this round!")
         return "player wins"
     return "neither"
 
 # 7) announce_winner(winner) - Announces round result
 def announce_winner(winner):
     if winner == "player":
-        print("You win!")
+        print("You win this round!")
     elif winner == "dealer":
-        print("Dealer wins.")
+        print("Dealer wins this round.")
     elif winner == "tie":
         print("It's a tie!")
 
@@ -137,10 +141,47 @@ def player_turn():
 # 9) dealer_turn() - Dealer automatically plays
 def dealer_turn():
     global dealer_score
-    while dealer_score < 17:
+    wants_to_draw = True
+
+    #simulating dealer's decision taking
+    score_limit = random.choice([16,17,18])
+    if score_limit == 16 and dealer_score <= score_limit:
+        print("Dealer decides to play this round cautiously.")
+    elif score_limit == 17 and dealer_score <= score_limit:
+        print("Dealer plays a balanced strategy for this round.")
+    elif score_limit == 18 and dealer_score <= score_limit:
+        print("Dealer takes a more aggressive approach this round!")
+    elif dealer_score > score_limit:
+        print("Dealer decided to stand.")
+        input("[Press 'Enter' to continue...]")
+        wants_to_draw = False
+
+    while wants_to_draw:
+        print("Dealer draws.")
         card = deck.pop()
         dealer_hand.append(card)
         dealer_score = calculate_score(dealer_hand)
+
+        # Post-draw checks
+        if dealer_score > 21:
+            print("Dealer regrets drawing... they busted!")
+            wants_to_draw = False
+        elif dealer_score == 21:
+            print("Dealer smiles confidently... Blackjack!")
+            wants_to_draw = False
+        elif dealer_score < score_limit:
+            print("Dealer wants to draw again.")
+        else:
+            print("Dealer decides to stand.")
+            wants_to_draw = False
+        
+        input("[Press 'Enter' to continue...]")
+
+# 10)
+def dealers_final_hand():
+    print(Back.WHITE + Fore.BLACK + Style.BRIGHT + "Dealer's secret hand revealed:" + Style.RESET_ALL)
+    for card in dealer_hand:
+        print(f"{card[0]} of {card[1]}")
 
 # MAIN GAME LOOP
 while True:
@@ -155,7 +196,7 @@ while True:
         announce_winner(first_check)
         break
 
-    print("The game goes on...")
+    print("Nobody got a blackjack!\nThe game goes on...")
     input("[Press 'Enter' to continue...]")
 
     post_turn = player_turn()
