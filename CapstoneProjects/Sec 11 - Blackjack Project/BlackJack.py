@@ -32,6 +32,11 @@ random.shuffle(deck)  # Shuffle the deck
 
 player_hand = []
 dealer_hand = []
+player_chips = 1000
+dealer_chips = 1000
+player_wins = 0
+dealer_wins = 0
+
 
 # HELPER METHODS
 
@@ -103,13 +108,22 @@ def isInitialBlackjack():
     return "neither"
 
 # 7) announce_winner(winner) - Announces round result
-def announce_winner(winner):
+def announce_winner(winner, bet):
+    global player_chips, dealer_chips, player_wins, dealer_wins
+
     if winner == "player":
         print("You win this round!")
+        player_chips += bet
+        dealer_chips -= bet
+        player_wins += 1
+
     elif winner == "dealer":
         print("Dealer wins this round.")
+        player_chips -= bet
+        dealer_chips += bet
+        dealer_wins += 1
     elif winner == "tie":
-        print("It's a tie!")
+        print("It's a tie! Both keep their chips.")
 
 # 8) player_turn() - Manages player's turn
 def player_turn():
@@ -143,6 +157,7 @@ def dealer_turn():
     global dealer_score
     wants_to_draw = True
 
+    clear()
     #simulating dealer's decision taking
     score_limit = random.choice([16,17,18])
     if score_limit == 16 and dealer_score <= score_limit:
@@ -178,46 +193,112 @@ def dealer_turn():
         input("[Press 'Enter' to continue...]")
 
 # 10)
-def dealers_final_hand():
+def print_final_board():
+    global player_score, dealer_score
+    player_score = calculate_score(player_hand)
+    dealer_score = calculate_score(dealer_hand)
+
+    print("\n------------------------------------------------------------------")
+    print_hand("player")
+    print(Back.LIGHTRED_EX + Style.BRIGHT + f"Your score: {player_score}" + Style.RESET_ALL)
+    print("\n------------------------------------------------------------------")
     print(Back.WHITE + Fore.BLACK + Style.BRIGHT + "Dealer's secret hand revealed:" + Style.RESET_ALL)
     for card in dealer_hand:
         print(f"{card[0]} of {card[1]}")
+    print(Back.LIGHTRED_EX + Style.BRIGHT + f"Dealer's score: {dealer_score}" + Style.RESET_ALL)
+    print("------------------------------------------------------------------\n")
 
+def place_bet():
+    global player_chips
+    while True:
+        try:
+            bet = int(input(f"\nYou have {player_chips} chips. How much would you like to bet? "))
+            if 1 <= bet <= player_chips:
+                return bet
+            else:
+                print("Invalid bet amount! You must bet at least 1 chip and no more than your total chips.")
+        except ValueError:
+            print("Invalid input! Enter a valid number.")
+
+def display_scores():
+    print("\n============== Game Stats ==============")
+    print(f"Player Chips: {player_chips}  |  Dealer Chips: {dealer_chips}")
+    print(f"Rounds Won →  Player [{player_wins}] - Dealer [{dealer_wins}]")
+    print("========================================\n")
+
+def play_again():
+    while True:
+        choice = input("Do you want to play another round? (yes/no): ").strip().lower()
+        if choice in ["yes", "y"]:
+            return True
+        elif choice in ["no", "n"]:
+            return False
+        else:
+            print("Invalid input! Please type 'yes' or 'no'.")
+
+clear()
 # MAIN GAME LOOP
-while True:
+while player_chips > 0 and dealer_chips > 0:
+    
+    # Place a bet
+    display_scores()
+    bet = place_bet()
     clear()
+    # Initial Deal
     initial_deal()
     player_score = calculate_score(player_hand)
     dealer_score = calculate_score(dealer_hand)
 
     print_board()
+    
+    # Check for initial Blackjack
     first_check = isInitialBlackjack()
     if first_check in ["player wins", "tie"]:
-        announce_winner(first_check)
-        break
+        announce_winner(first_check, bet)
+        display_scores()
+        if not play_again():
+            break
+        continue  # Start new round
 
     print("Nobody got a blackjack!\nThe game goes on...")
     input("[Press 'Enter' to continue...]")
 
+    # Player Turn
     post_turn = player_turn()
     if post_turn == "busted":
         print("\nYou bust! You went over 21.")
-        announce_winner("dealer")
-        break
+        announce_winner("dealer", bet)
+        display_scores()
+        if not play_again():
+            break
+        continue
 
+    # Dealer Turn
     print("\nDealer's turn...")
     dealer_turn()
 
-    # Final results
-    print_board()
+    # Final Results
+    print_final_board()
     if dealer_score > 21:
         print("Dealer busts! You win!")
-        announce_winner("player")
+        announce_winner("player", bet)
     elif dealer_score > player_score:
-        announce_winner("dealer")
+        announce_winner("dealer", bet)
     elif dealer_score < player_score:
-        announce_winner("player")
+        announce_winner("player", bet)
     else:
-        announce_winner("tie")
+        announce_winner("tie", bet)
     
-    break  # Ends after one round (can be modified for replayability)
+    clear()
+    display_scores()
+
+    # Check if player wants to continue
+    if not play_again():
+        break
+
+# Game Over
+print("\nGame Over!")
+if player_chips <= 0:
+    print("You're out of chips! Better luck next time.")
+elif dealer_chips <= 0:
+    print("Dealer is out of chips! You win the game!")
